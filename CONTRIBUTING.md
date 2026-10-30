@@ -8,7 +8,8 @@ firmware that is not tested yet.
 Open an issue with the **Model or firmware report** form and tell us the model and the firmware.
 Never paste raw SNMP output: it contains your MAC addresses, IP addresses and device names.
 Instead, run the diagnostics command and paste its output; it describes what the switch answers
-without any of the values:
+without addresses or port names (read it first: the model line is the switch's own description,
+which on some switches holds its host name):
 
 ```sh
 pip install aiosnmpswitch

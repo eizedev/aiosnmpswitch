@@ -8,6 +8,7 @@ same interface (:class:`RecordedTransport`), so nothing above this module knows 
 from __future__ import annotations
 
 import asyncio
+import importlib
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Protocol
 
@@ -79,6 +80,12 @@ _AUTH_ERRORS = frozenset(
 )
 
 
+# A walk stops with an error after this many rows: a broken or hostile agent could otherwise
+# send rows until memory runs out. The largest standard table read here has a few thousand.
+MAX_WALK_ROWS = 100_000
+_HLAPI = "pysnmp.hlapi.v3arch.asyncio"
+
+
 class PysnmpTransport:
     """Reads a switch over UDP with pysnmp (asyncio).
 
@@ -117,8 +124,8 @@ class PysnmpTransport:
         ``engine`` is a shared ``pysnmp`` ``SnmpEngine``; without one, the transport creates its
         own and closes it in :meth:`close`. An IPv6 address uses UDP over IPv6.
         """
-        from pysnmp.hlapi.v3arch import asyncio as hlapi  # noqa: PLC0415 - pysnmp imports slowly
-
+        # pysnmp loads many modules on first use: import it in a worker thread, not in the loop.
+        hlapi = await asyncio.to_thread(importlib.import_module, _HLAPI)
         owns_engine = engine is None
         if owns_engine:
             engine = await asyncio.to_thread(hlapi.SnmpEngine)
@@ -132,10 +139,25 @@ class PysnmpTransport:
         return cls(engine, _auth_data(auth), target, max_repetitions, owns_engine)
 
     async def get(self, oids: Sequence[str]) -> dict[str, Value]:
-        """Read single OIDs in one request."""
-        from pysnmp.hlapi.v3arch import asyncio as hlapi  # noqa: PLC0415
+        """Read single OIDs in one request.
 
-        error, status, index, var_binds = await hlapi.get_cmd(
+        SNMPv1 fails a whole request with ``noSuchName`` when one OID is missing; then each OID
+        is read on its own and the missing ones are left out, as v2c and v3 do.
+        """
+        error, status, index, var_binds = await self._get(oids)
+        if len(oids) > 1 and _no_such_name(error, status):
+            values: dict[str, Value] = {}
+            for oid in oids:
+                values.update(await self.get([oid]))
+            return values
+        if _no_such_name(error, status):
+            return {}
+        _raise_for(error, status, index)
+        return dict(_converted(var_binds))
+
+    async def _get(self, oids: Sequence[str]) -> Any:
+        hlapi = importlib.import_module(_HLAPI)  # loaded by create(); a dictionary lookup
+        return await hlapi.get_cmd(
             self._engine,
             self._auth,
             self._target,
@@ -143,12 +165,13 @@ class PysnmpTransport:
             *(hlapi.ObjectType(hlapi.ObjectIdentity(oid)) for oid in oids),
             lookupMib=False,
         )
-        _raise_for(error, status, index)
-        return dict(_converted(var_binds))
 
     async def walk(self, oid: str) -> list[tuple[str, Value]]:
-        """Read every OID below ``oid`` with GETBULK (GETNEXT on SNMPv1)."""
-        from pysnmp.hlapi.v3arch import asyncio as hlapi  # noqa: PLC0415
+        """Read every OID below ``oid`` with GETBULK (GETNEXT on SNMPv1).
+
+        More than :data:`MAX_WALK_ROWS` rows raise :class:`SnmpError`.
+        """
+        hlapi = importlib.import_module(_HLAPI)
 
         rows: list[tuple[str, Value]] = []
         walk_options: dict[str, Any] = {"lexicographicMode": False, "lookupMib": False}
@@ -170,10 +193,12 @@ class PysnmpTransport:
                 **walk_options,
             )
         async for error, status, index, var_binds in replies:
-            if _end_of_v1_walk(error, status):
+            if _no_such_name(error, status):  # SNMPv1: past the last OID
                 break
             _raise_for(error, status, index)
             rows.extend(_converted(var_binds))
+            if len(rows) > MAX_WALK_ROWS:
+                raise SnmpError(f"more than {MAX_WALK_ROWS} rows below {oid}")
         return rows
 
     async def close(self) -> None:
@@ -184,7 +209,7 @@ class PysnmpTransport:
 
 def _auth_data(auth: Auth) -> Any:
     """Turn credentials into pysnmp's ``CommunityData`` or ``UsmUserData``."""
-    from pysnmp.hlapi.v3arch import asyncio as hlapi  # noqa: PLC0415
+    hlapi = importlib.import_module(_HLAPI)
 
     if isinstance(auth, CommunityAuth):
         return hlapi.CommunityData(auth.community, mpModel=0 if auth.version == "1" else 1)
@@ -225,8 +250,8 @@ def _usm_data(hlapi: Any, auth: UsmAuth) -> Any:
     )
 
 
-def _end_of_v1_walk(error: Any, status: Any) -> bool:
-    """SNMPv1 ends a walk past the last OID with the error ``noSuchName``."""
+def _no_such_name(error: Any, status: Any) -> bool:
+    """SNMPv1's answer for an OID it does not have, and for a walk past the last OID."""
     return not error and bool(status) and str(status.prettyPrint()) == "noSuchName"
 
 

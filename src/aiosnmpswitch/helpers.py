@@ -87,14 +87,19 @@ def lldp_port_if_index(
 ) -> int | None:
     """Return the ``ifIndex`` of LLDP's local port number ``port_num``.
 
-    The port ID is matched by name when the switch sends one; otherwise the port number is taken
-    as the ``ifIndex``, which is what switches with a MAC address as port ID do (HPE 1920S).
+    The port ID is matched by name when the switch sends one (``ifName``, then ``ifDescr``, then
+    ``ifAlias``); otherwise the port number is taken as the ``ifIndex``, which is what switches
+    with a MAC address as port ID do (HPE 1920S). On a switch whose LLDP port numbers are not its
+    interface indexes and whose port IDs match no name, the mapping fails or hits the wrong port,
+    and :func:`uplink_ports` cannot see its uplinks.
     """
     local = lldp.ports.get(port_num)
     if local and local.port_id and local.port_id_subtype in _LLDP_PORT_NAME_SUBTYPES:
-        for interface in interfaces.values():
-            if local.port_id in (interface.name, interface.descr, interface.alias):
-                return interface.index
+        # The switch's own names first; an alias is set by people and may repeat another name.
+        for field in ("name", "descr", "alias"):
+            for interface in interfaces.values():
+                if getattr(interface, field) == local.port_id:
+                    return interface.index
     return port_num if port_num in interfaces else None
 
 

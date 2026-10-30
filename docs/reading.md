@@ -24,6 +24,10 @@ Units worth knowing:
 - `SystemInfo.up_time`, `Interface.last_change` and `StpInfo.time_since_topology_change` are in
   hundredths of a second.
 - `MainPse.power` and `consumption_power` are watts. Per-port power is not in the standard MIB.
+- Counters: prefer the 64-bit `hc_*` fields. The 32-bit ones (`in_octets`, `out_octets`) wrap
+  after 4 GB, which a busy gigabit port reaches in about half a minute. SNMPv1 has no 64-bit
+  counters. Counters start again at 0 when the switch restarts.
+- A walk returns at most 100,000 rows (`transport.MAX_WALK_ROWS`); more raise `SnmpError`.
 
 ## Helpers
 

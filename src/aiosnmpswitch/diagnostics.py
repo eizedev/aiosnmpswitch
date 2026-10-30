@@ -4,9 +4,11 @@
     aiosnmpswitch-diagnostics <switch address> --user <SNMPv3 user>  # keys asked
     aiosnmpswitch-diagnostics <switch address> --record switch.raw.json
 
-The summary names the model and firmware and counts what each MIB returns; it holds no MAC or IP
-addresses, names or descriptions and can be pasted into an issue. A recording holds every value
-and must be anonymized with ``scripts/anonymize.py`` before it is shared.
+The summary prints the switch's description (``sysDescr``: model and firmware on most switches,
+but some put their host name or serial number there) and counts what each MIB returns; it holds
+no MAC or IP addresses, port names or descriptions. Read it before pasting it into an issue. A
+recording holds every value and must be anonymized with ``scripts/anonymize.py`` before it is
+shared; it is written only to a new ``*.raw.json`` file readable by its owner alone.
 
 Secrets are never taken from the command line (other users can see it): they come from the
 environment (``SNMP_COMMUNITY``, ``SNMP_AUTH_KEY``, ``SNMP_PRIV_KEY``) or are asked for.
@@ -90,11 +92,12 @@ async def summary(switch: SnmpSwitch) -> list[str]:
     """Lines describing what the switch answers; counts and structure only, no values."""
     system = await switch.get_system()
     interfaces = await switch.get_interfaces()
+    lldp = await switch.get_lldp()
     data = SwitchData(
         interfaces=interfaces,
         bridge_ports=await switch.get_bridge_ports(),
         fdb=await switch.get_fdb(),
-        lldp=await switch.get_lldp(),
+        lldp=lldp,
         lag_ports=await switch.get_lag_ports(),
         neighbors=await switch.get_neighbors(),
     )
@@ -104,8 +107,6 @@ async def summary(switch: SnmpSwitch) -> list[str]:
     for interface in interfaces.values():
         types[interface.type] = types.get(interface.type, 0) + 1
     fdb = list(data.fdb)
-    lldp = data.lldp
-    assert lldp is not None  # noqa: S101 - set above
     with_hc = sum(1 for i in interfaces.values() if i.hc_in_octets is not None)
     port_states = len(stp.port_states) if stp else 0
     return [
@@ -178,18 +179,27 @@ async def run(args: argparse.Namespace, environ: Mapping[str, str]) -> int:
     )
     try:
         if args.record:
+            if not args.record.name.endswith(".raw.json"):
+                print("error: a recording's name must end in .raw.json", file=sys.stderr)
+                return 2
             values = await record(transport)
             payload = {
                 "format": RECORDING_FORMAT,
                 "values": {oid: encode(value) for oid, value in values.items()},
             }
-            args.record.write_text(json.dumps(payload, indent=1) + "\n", encoding="utf-8")
+            # A new file only, readable by its owner: it holds every address and name.
+            descriptor = os.open(args.record, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+                file.write(json.dumps(payload, indent=1) + "\n")
             print(f"{len(values)} values written to {args.record}; anonymize before sharing")
         else:
             print("\n".join(await summary(SnmpSwitch(transport))))
     except SnmpError as err:
         print(f"error: {err}", file=sys.stderr)
         return 1
+    except FileExistsError:
+        print(f"error: {args.record} exists; choose another name", file=sys.stderr)
+        return 2
     finally:
         await transport.close()
     return 0

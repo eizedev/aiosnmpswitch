@@ -84,6 +84,7 @@ def fake_hlapi(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         return walk(*args, **options)
 
     monkeypatch.setattr(hlapi, "get_cmd", get_cmd)
+    answers["monkeypatch"] = monkeypatch
     monkeypatch.setattr(hlapi, "bulk_walk_cmd", bulk_walk_cmd)
     monkeypatch.setattr(hlapi, "walk_cmd", walk_cmd)
     return answers
@@ -217,3 +218,37 @@ async def test_real_engine_is_created_and_closed(fake_hlapi: dict[str, Any]) -> 
     transport = await PysnmpTransport.create("192.0.2.1", CommunityAuth("c"))
     assert isinstance(transport._engine, hlapi.SnmpEngine)
     await transport.close()
+
+
+async def test_v1_get_reads_each_oid_when_one_is_missing(fake_hlapi: dict[str, Any]) -> None:
+    answers = {
+        "1.3.6.1.2.1.1.5.0": (None, 0, 0, (bind("1.3.6.1.2.1.1.5.0", rfc1902.OctetString(b"sw")),)),
+        "1.3.6.1.2.1.1.9.0": (None, Status("noSuchName"), 1, ()),
+    }
+    asked: list[int] = []
+
+    async def get(self: PysnmpTransport, oids: Any) -> Any:
+        asked.append(len(oids))
+        if len(oids) > 1:
+            return (None, Status("noSuchName"), 2, ())
+        return answers[oids[0]]
+
+    fake_hlapi["monkeypatch"].setattr(PysnmpTransport, "_get", get)
+    transport = await PysnmpTransport.create("192.0.2.1", CommunityAuth("c", version="1"))
+    values = await transport.get(["1.3.6.1.2.1.1.5.0", "1.3.6.1.2.1.1.9.0"])
+    assert values == {"1.3.6.1.2.1.1.5.0": b"sw"}
+    assert asked == [2, 1, 1]
+
+
+async def test_walk_stops_after_too_many_rows(
+    fake_hlapi: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from aiosnmpswitch import transport as module  # noqa: PLC0415
+
+    monkeypatch.setattr(module, "MAX_WALK_ROWS", 2)
+    fake_hlapi["walk"] = [
+        (None, 0, 0, tuple(bind(f"1.3.6.1.2.1.2.2.1.8.{i}", rfc1902.Integer(1)) for i in range(3)))
+    ]
+    transport = await PysnmpTransport.create("192.0.2.1", CommunityAuth("c"))
+    with pytest.raises(SnmpError, match="more than 2 rows"):
+        await transport.walk("1.3.6.1.2.1.2.2.1.8")

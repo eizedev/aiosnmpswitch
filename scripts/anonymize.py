@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import re
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -25,24 +26,32 @@ FORMAT = 1
 MAC_LENGTH = 6
 BRIDGE_ID_LENGTH = 8
 MIN_TEXT = 3  # shorter originals ("1", "LG") occur in any text by chance
+MAX_NUMERIC_PORT_ID = 4  # longer all-digit port IDs may be serial numbers
+FAKE_IPV4_NETWORKS = ("192.0.2", "198.51.100", "203.0.113")  # RFC 5737
+ADDRESS_LIKE = re.compile(
+    # an IPv4 address on its own, not a version glued to a name ("InstantOn_1930_3.4.0.0")
+    r"(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}|(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])",
+    re.I,
+)
 
 # Columns (OID prefixes) whose octet strings are kept: models, firmware, port names, MIB texts,
-# capability bits, PoE port types.
+# capability bits. Kept text is checked once more for anything that looks like an address
+# (check_kept), and every distinct kept text is listed for a look before committing.
+SYS_DESCR = "1.3.6.1.2.1.1.1"
 KEEP = (
-    "1.3.6.1.2.1.1.1",  # sysDescr
+    SYS_DESCR,  # sysDescr: model and firmware; some agents add a host name, see the kept list
     "1.3.6.1.2.1.1.9.1.3",  # sysORDescr
     "1.3.6.1.2.1.2.2.1.2",  # ifDescr
     "1.3.6.1.2.1.31.1.1.1.1",  # ifName
     "1.0.8802.1.1.2.1.3.4",  # lldpLocSysDesc
     "1.0.8802.1.1.2.1.3.5",  # lldpLocSysCapSupported
     "1.0.8802.1.1.2.1.3.6",  # lldpLocSysCapEnabled
-    "1.0.8802.1.1.2.1.4.1.1.10",  # lldpRemSysDesc
     "1.0.8802.1.1.2.1.4.1.1.11",  # lldpRemSysCapSupported
     "1.0.8802.1.1.2.1.4.1.1.12",  # lldpRemSysCapEnabled
     "1.3.6.1.2.1.17.2.15.1.9",  # dot1dStpPortDesignatedPort (priority and port number)
-    "1.3.6.1.2.1.105.1.1.1.9",  # pethPsePortType
-    "1.3.6.1.2.1.105.1.3.1.1.6",  # vendor PSE firmware text (HPE 1920S)
 )
+# Firmware versions, kept without the address check: four numbers with dots look like IPv4.
+VERSIONS = ("1.3.6.1.2.1.105.1.3.1.1.6",)  # vendor PSE firmware text (HPE 1920S)
 # Columns holding a MAC address, or a text port ID when it is not six octets.
 MACS = (
     "1.3.6.1.2.1.2.2.1.6",  # ifPhysAddress
@@ -60,7 +69,11 @@ BRIDGE_IDS = (
     "1.3.6.1.2.1.17.2.15.1.8",  # dot1dStpPortDesignatedBridge
 )
 NAMES = ("1.3.6.1.2.1.1.5", "1.0.8802.1.1.2.1.3.3", "1.0.8802.1.1.2.1.4.1.1.9")
+# lldpRemSysDesc is what a neighbour says about itself; it is kept only where it equals a
+# description of one of the recorded switches (sysDescr), else replaced.
+REMOTE_DESCRIPTIONS = ("1.0.8802.1.1.2.1.4.1.1.10",)
 DESCRIPTIONS = (
+    "1.3.6.1.2.1.105.1.1.1.9",  # pethPsePortType: written by administrators
     "1.3.6.1.2.1.31.1.1.1.18",  # ifAlias
     "1.0.8802.1.1.2.1.3.7.1.4",  # lldpLocPortDesc
     "1.0.8802.1.1.2.1.4.1.1.8",  # lldpRemPortDesc
@@ -90,6 +103,8 @@ class Anonymizer:
         self.macs: dict[bytes, bytes] = {}
         self.ips: dict[bytes, bytes] = {}
         self.texts: dict[tuple[str, str], str] = {}
+        self.kept: set[str] = set()
+        self.system_descriptions: set[bytes] = set()
 
     def mac(self, value: bytes) -> bytes:
         """A fake, locally administered MAC address for ``value``."""
@@ -103,7 +118,11 @@ class Anonymizer:
         if value not in self.ips:
             n = len(self.ips) + 1
             if len(value) == 4:  # noqa: PLR2004
-                fake = ipaddress.IPv4Address(f"192.0.2.{n}")
+                count = sum(1 for original in self.ips if len(original) == 4) + 1  # noqa: PLR2004
+                network, host = divmod(count - 1, 254)
+                if network >= len(FAKE_IPV4_NETWORKS):
+                    raise SystemExit("more IPv4 addresses than the documentation networks hold")
+                fake = ipaddress.IPv4Address(f"{FAKE_IPV4_NETWORKS[network]}.{host + 1}")
             elif value[:2] == b"\xfe\x80":
                 fake = ipaddress.IPv6Address(f"fe80::{n:x}")  # type: ignore[assignment]
             else:
@@ -124,7 +143,9 @@ class Anonymizer:
         """Replace or keep an octet string by its column."""
         text = raw.decode("utf-8", errors="replace")
         rules: list[tuple[tuple[str, ...], Callable[[], bytes]]] = [
-            (KEEP, lambda: raw),
+            (KEEP, lambda: self.keep(oid, raw)),
+            (VERSIONS, lambda: raw),
+            (REMOTE_DESCRIPTIONS, lambda: self.remote_description(raw)),
             (MACS, lambda: self.mac(raw) if len(raw) == MAC_LENGTH else self.port_text(raw)),
             (BRIDGE_IDS, lambda: self.bridge_id(raw)),
             (NAMES, lambda: self.text("name", text, "switch-{}").encode()),
@@ -137,10 +158,28 @@ class Anonymizer:
                 return replace()
         raise SystemExit(f"unclassified octet string in {oid}: add its column to a list first")
 
-    def port_text(self, raw: bytes) -> bytes:
-        """A port ID that is not a MAC address: kept if it is only a number, else replaced."""
+    def keep(self, oid: str, raw: bytes) -> bytes:
+        """Keep a value of a KEEP column, unless it looks like it holds an address."""
         text = raw.decode("utf-8", errors="replace")
-        return raw if text.isdigit() else self.text("port", text, "port {}").encode()
+        if ADDRESS_LIKE.search(text):
+            raise SystemExit(f"a kept value in {oid} looks like an address: classify the column")
+        if text.isprintable() and text.strip():
+            self.kept.add(text)
+        return raw
+
+    def remote_description(self, raw: bytes) -> bytes:
+        """A neighbour's description: kept if it is one of the recorded switches', else replaced."""
+        if raw in self.system_descriptions:
+            return raw
+        text = raw.decode("utf-8", errors="replace")
+        return self.text("device description", text, "device description {}").encode()
+
+    def port_text(self, raw: bytes) -> bytes:
+        """A port ID that is not a MAC address: kept if it is a short number, else replaced."""
+        text = raw.decode("utf-8", errors="replace")
+        if text.isdigit() and len(text) <= MAX_NUMERIC_PORT_ID:
+            return raw
+        return self.text("port", text, "port {}").encode()
 
     def bridge_id(self, raw: bytes) -> bytes:
         """Priority kept, MAC address replaced."""
@@ -216,10 +255,15 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     anonymizer = Anonymizer()
-    outputs = []
-    for raw, out in zip(argv[::2], argv[1::2], strict=True):
-        data = json.loads(Path(raw).read_text(encoding="utf-8"))
-        outputs.append((Path(out), anonymize(anonymizer, data)))
+    recordings = [
+        (json.loads(Path(raw).read_text(encoding="utf-8")), Path(out))
+        for raw, out in zip(argv[::2], argv[1::2], strict=True)
+    ]
+    for data, _ in recordings:  # the switches' own descriptions, as their neighbours see them
+        value = data.get("values", {}).get(f"{SYS_DESCR}.0")
+        if isinstance(value, dict) and "hex" in value:
+            anonymizer.system_descriptions.add(bytes.fromhex(value["hex"]))
+    outputs = [(out, anonymize(anonymizer, data)) for data, out in recordings]
     for path, data in outputs:
         text = json.dumps(data, indent=1, sort_keys=True) + "\n"
         if found := leftovers(anonymizer, text):
@@ -227,6 +271,9 @@ def main(argv: list[str]) -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
         print(f"written {path}")
+    print("Kept as they are; check that none of them names a person, place or device:")
+    for text in sorted(anonymizer.kept):
+        print(f"  {text[:100]}")
     return 0
 
 

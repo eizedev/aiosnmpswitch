@@ -52,8 +52,18 @@ asyncio.run(main())
 | `engine` | own | a shared pysnmp `SnmpEngine`, for programs that read many switches |
 
 An IPv6 address uses UDP over IPv6. pysnmp reads files when its engine starts, so the transport
-creates the engine in a worker thread; programs with many switches create one engine
-(`await asyncio.to_thread(SnmpEngine)`) and pass it to every switch.
+imports pysnmp and creates the engine in a worker thread; programs with many switches can create
+one engine and pass it to every switch:
+
+```python
+from pysnmp.hlapi.v3arch.asyncio import SnmpEngine
+
+engine = await asyncio.to_thread(SnmpEngine)
+switch = await SnmpSwitch.connect("192.0.2.10", auth, engine=engine)
+```
+
+Sharing one engine between switches that use the same SNMPv3 user name with different passwords
+is not tested.
 
 ## Credentials in your program
 
