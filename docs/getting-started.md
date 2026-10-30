@@ -62,8 +62,9 @@ engine = await create_engine()
 switch = await SnmpSwitch.connect("192.0.2.10", auth, engine=engine)
 ```
 
-Sharing one engine between switches that use the same SNMPv3 user name with different passwords
-is not tested.
+Do not share one engine between switches that use the same SNMPv3 user name with different
+passwords: pysnmp keeps the user in the engine by name, so the switches replace each other's
+keys. Create one engine per set of credentials.
 
 ## Credentials in your program
 

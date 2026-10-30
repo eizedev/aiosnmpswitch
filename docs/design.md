@@ -15,7 +15,8 @@ see what the switch said and what was derived.
 ## Targeted reads
 
 Getters walk whole tables in one GETBULK sequence each (GETNEXT on SNMPv1), with MIB lookups off,
-so pysnmp never loads MIB files at runtime. Only the standard subtrees are read; vendor trees can
+so requests do not resolve names. The engine loads pysnmp's MIB modules once, in
+`create_engine()`, outside the event loop. Only the standard subtrees are read; vendor trees can
 be huge.
 
 ## Parsers never raise
