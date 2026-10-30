@@ -11,9 +11,15 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - `get_temperatures()`: temperature sensors from the ENTITY-SENSOR-MIB, in degrees Celsius with
-  name and status. On the HPE Instant On 1930, which has no standard sensor table, from its
-  vendor table (measured; read only on that model). Diagnostics count the sensors; recordings
-  include these tables and `entPhysicalName`.
+  name and status. On the HPE Instant On 1930 8G 2SFP (JL680A), which has no standard sensor
+  table, from its vendor table (measured on firmware 3.4.0.0; read only on that model). A sensor
+  that reports itself not ok, or a scale or precision outside RFC 3433, gives no reading.
+  Diagnostics count the sensors; recordings include these tables.
+
+### Fixed
+
+- A value directly under a table column, without a row index, no longer makes a getter raise
+  (found by the robustness test, for example in the address table).
 
 ## [0.2.0] - 2026-10-30
 

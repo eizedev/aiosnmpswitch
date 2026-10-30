@@ -39,7 +39,6 @@ RECORDED_SUBTREES = (
     "1.3.6.1.2.1.1",  # system
     "1.3.6.1.2.1.47.1.1.1.1.2",  # entPhysicalDescr
     "1.3.6.1.2.1.47.1.1.1.1.5",  # entPhysicalClass
-    "1.3.6.1.2.1.47.1.1.1.1.7",  # entPhysicalName
     "1.3.6.1.2.1.47.1.1.1.1.10",  # entPhysicalSoftwareRev
     "1.3.6.1.2.1.47.1.1.1.1.13",  # entPhysicalModelName
     "1.3.6.1.2.1.99.1.1.1",  # entPhySensorTable

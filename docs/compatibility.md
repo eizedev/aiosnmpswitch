@@ -26,10 +26,12 @@
   taken as the `ifIndex`.
 - **HPE Instant On 1930** attaches a port in no trunk to itself in `dot3adAggPortAttachedAggID`
   instead of 0.
-- **HPE Instant On 1930** has no ENTITY-SENSOR-MIB table; its two temperature sensors (`PP`,
+- **HPE Instant On 1930 8G 2SFP (JL680A), firmware 3.4.0.0** has no ENTITY-SENSOR-MIB table; its two temperature sensors (`PP`,
   `PHY`) are in a vendor table with the same columns (`1.3.6.1.4.1.11.2.83.2.1.1.1`, names in
   `.83.3.1.4`). Its precision column says one decimal place, but the value is whole degrees
-  (54 means 54 °C), so `get_temperatures()` ignores it there. The HPE 1920S has no temperature
+  (54 means 54 °C, read twice, the values move), so `get_temperatures()` ignores it there and
+  drops a reading outside -40 to 150 °C. Other 1930 models have other `sysObjectID`s and get no
+  temperatures until someone records one. The HPE 1920S has no temperature
   sensor in SNMP.
 - **HPE Instant On 1930**: a full SNMP walk takes more than ten minutes (over 300,000 vendor
   entries); the library walks only the standard tables it needs (about 1.5 seconds).

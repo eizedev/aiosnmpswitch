@@ -34,7 +34,8 @@ hide:
 ## Why this library?
 
 Home Assistant's built-in SNMP integration reads one OID per entity from YAML. This library
-starts from the standard MIBs every managed switch implements:
+starts from the standard MIBs every managed switch implements (a vendor table only where a
+measured model lacks the standard one):
 
 | | aiosnmpswitch |
 | --- | --- |

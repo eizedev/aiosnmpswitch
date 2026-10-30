@@ -89,7 +89,8 @@ class Temperature:
     name: str | None
     """The sensor's name as the switch gives it, for example ``PHY``."""
     celsius: float | None
-    """The reading in degrees Celsius, or ``None`` without a value."""
+    """The reading in degrees Celsius; ``None`` without a value, while the sensor reports itself
+    not ok, or when the switch's scale or precision make no sense."""
     status: SensorStatus | None
 
 
