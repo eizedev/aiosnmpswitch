@@ -34,7 +34,7 @@ asyncio program.
 | --- | --- |
 | ✅ **Tested** | HPE OfficeConnect 1920S (JL383A, PD.02.22), HPE Instant On 1930 (JL680A, 3.4.0.0) |
 | 🟡 **Expected to work** | Managed switches with SNMP and the standard MIBs (IF-MIB, Q-BRIDGE-MIB, LLDP-MIB) |
-| ❔ **Partly** | Switches without LLDP or Q-BRIDGE-MIB: fewer details, no uplink detection |
+| ❔ **Partly** | Switches without LLDP or Q-BRIDGE-MIB: fewer details, no uplink detection; PoE watts per port are not in the standard MIB |
 | ❌ **Not in scope** | Unmanaged and "smart" switches without SNMP, changing settings |
 
 Each getter returns an empty result when the switch lacks its MIB. How to report your model:
@@ -43,7 +43,7 @@ Each getter returns an empty result when the switch lacks its MIB. How to report
 ## Quick start
 
 You need Python 3.12 or newer and SNMP read access to the switch: SNMPv3 (recommended) or a
-v2c community.
+v2c community. To locate devices across several switches, LLDP must be on on each of them.
 
 ```sh
 pip install aiosnmpswitch
