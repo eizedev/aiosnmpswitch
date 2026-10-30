@@ -37,5 +37,19 @@ point with its Wi-Fi clients, a router, a hub or an unmanaged switch. `ip_addres
 the switches' own neighbour caches, which usually know only a few devices; take addresses from
 your router or DHCP server instead.
 
+## Limits
+
+- **LLDP is needed on every switch** to recognise the links between them. The link's port is
+  found by the port name the switch sends in LLDP, or, if it sends none, by taking LLDP's port
+  number as the interface index. Switches whose LLDP port numbers are not their interface indexes
+  and whose port IDs match no port name (some stacked switches) show no uplinks; their neighbours'
+  devices then look connected to them.
+- A switch is recognised as one of yours only by a MAC address in its LLDP chassis ID; a chassis
+  ID of another type (a name, an IP address) makes it count as a device.
+- A device that moved from one switch to another is seen on both until the old entry ages out,
+  and a host with two links (a bond, a hypervisor) on two ports: the port with fewer devices wins.
+- A device whose MAC address equals one of a switch's own (a switch that is also your router)
+  is left out.
+
 Address tables age out after about five minutes of silence (the switch's setting), so a device
 that sends nothing for a while disappears until it talks again.

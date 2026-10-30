@@ -14,7 +14,9 @@ All notable changes to this project are documented here. The format follows
 - SNMPv1, v2c and v3 (all authentication and privacy protocols pysnmp offers).
 - `helpers.locate_macs()`: the port every device is connected to, across several switches, with
   uplinks found through LLDP and trunk members located on their trunk.
-- `aiosnmpswitch-diagnostics`: a report without personal data, and recordings for test fixtures.
+- `create_engine()`: a pysnmp engine prepared in a worker thread, to share between switches.
+- `aiosnmpswitch-diagnostics`: a report without addresses or port names, and recordings for test
+  fixtures.
 - Tested on HPE OfficeConnect 1920S (PD.02.22) and HPE Instant On 1930 (3.4.0.0).
 
 [Unreleased]: https://github.com/eizedev/aiosnmpswitch/commits/main

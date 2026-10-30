@@ -24,7 +24,14 @@ from .models import (
     StpPortState,
     SystemInfo,
 )
-from .transport import ObjectId, PysnmpTransport, RecordedTransport, Transport, Value
+from .transport import (
+    ObjectId,
+    PysnmpTransport,
+    RecordedTransport,
+    Transport,
+    Value,
+    create_engine,
+)
 
 try:
     from ._version import __version__
@@ -63,4 +70,5 @@ __all__ = [
     "UsmAuth",
     "Value",
     "__version__",
+    "create_engine",
 ]

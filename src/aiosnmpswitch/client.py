@@ -229,13 +229,18 @@ class SnmpSwitch:
 
     async def get_lldp(self) -> Lldp:
         """LLDP-MIB: this switch's chassis and ports, and the neighbours it sees."""
-        local = await self._table("1.0.8802.1.1.2.1.3")
+        scalars = (
+            oids.LLDP_LOC_CHASSIS_ID_SUBTYPE,
+            oids.LLDP_LOC_CHASSIS_ID,
+            oids.LLDP_LOC_SYS_NAME,
+        )
+        local = await self.transport.get([f"{oid}.0" for oid in scalars])
         port_table = await self._table("1.0.8802.1.1.2.1.3.7.1")
         remote = await self._table("1.0.8802.1.1.2.1.4.1.1")
         addresses = await self._table("1.0.8802.1.1.2.1.4.2.1")
 
         def scalar(oid: str) -> Value | None:
-            return local.get(oid, {}).get((0,))
+            return local.get(f"{oid}.0")
 
         chassis_subtype = to_int(scalar(oids.LLDP_LOC_CHASSIS_ID_SUBTYPE))
         port_subtypes = port_table.get(oids.LLDP_LOC_PORT_ID_SUBTYPE, {})

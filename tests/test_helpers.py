@@ -108,6 +108,12 @@ def test_entries_without_port_or_unknown_status_or_interface() -> None:
     assert list(found) == ["02:00:00:00:00:04"]
 
 
+def test_lldp_port_name_wins_over_an_alias() -> None:
+    interfaces = {1: Interface(index=1, alias="gi2"), 2: Interface(index=2, name="gi2")}
+    lldp = Lldp(None, None, None, {9: LldpLocalPort(9, 5, "gi2")}, [])
+    assert lldp_port_if_index(lldp, 9, interfaces) == 2
+
+
 def test_lldp_port_mapping() -> None:
     interfaces = {
         1: Interface(index=1, name="gi1"),

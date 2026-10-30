@@ -22,10 +22,14 @@ trunks: 2 with members, LAG-MIB rows 8
 PoE: 1 supplies, 4 ports
 ```
 
-It contains no MAC or IP addresses, names or descriptions; read it, then paste it into an issue.
+It contains no MAC or IP addresses, port names or descriptions. The `model` line is the
+switch's `sysDescr` as it is: model and firmware on most switches, but some (Linux-based ones in
+particular) put their host name or a serial number there. Read the output, then paste it into an
+issue.
 
 ## Recordings for tests
 
-`--record switch.raw.json` writes every value the library reads. It contains your addresses and
-names: never share it as it is. Maintainers turn recordings into test fixtures with
+`--record switch.raw.json` writes every value the library reads into a new file that only you
+can read (the name must end in `.raw.json`, an existing file is not overwritten). It contains
+your addresses and names: never share it as it is. Maintainers turn recordings into test fixtures with
 `scripts/anonymize.py` (see CONTRIBUTING.md).

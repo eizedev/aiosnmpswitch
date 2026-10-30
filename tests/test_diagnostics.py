@@ -129,3 +129,19 @@ async def test_run_reports_errors(
 def test_main(recorded_create: list[Any], monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SNMP_COMMUNITY", "c")
     assert diag.main(["192.0.2.1"]) == 0
+
+
+async def test_record_needs_a_new_raw_file(
+    recorded_create: list[Any], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    environ = {"SNMP_COMMUNITY": "c"}
+    assert await diag.run(args("--record", str(tmp_path / "x.json")), environ) == 2
+    assert "must end in .raw.json" in capsys.readouterr().err
+    target = tmp_path / "x.raw.json"
+    target.write_text("old", encoding="utf-8")
+    assert await diag.run(args("--record", str(target)), environ) == 2
+    assert "exists" in capsys.readouterr().err
+    assert target.read_text(encoding="utf-8") == "old"
+    fresh = tmp_path / "y.raw.json"
+    assert await diag.run(args("--record", str(fresh)), environ) == 0
+    assert fresh.stat().st_mode & 0o777 == 0o600
