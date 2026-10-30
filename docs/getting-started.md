@@ -51,14 +51,14 @@ asyncio.run(main())
 | `max_repetitions` | 25 | rows per GETBULK request; lower it for switches that answer "tooBig" |
 | `engine` | own | a shared pysnmp `SnmpEngine`, for programs that read many switches |
 
-An IPv6 address uses UDP over IPv6. pysnmp reads files when its engine starts, so the transport
-imports pysnmp and creates the engine in a worker thread; programs with many switches can create
-one engine and pass it to every switch:
+An IPv6 address uses UDP over IPv6. pysnmp imports many modules and reads its MIB files on first
+use, so `create_engine()` does both in a worker thread; the transport calls it when it gets no
+engine. Programs with many switches can create one engine and pass it to every switch:
 
 ```python
-from pysnmp.hlapi.v3arch.asyncio import SnmpEngine
+from aiosnmpswitch import create_engine
 
-engine = await asyncio.to_thread(SnmpEngine)
+engine = await create_engine()
 switch = await SnmpSwitch.connect("192.0.2.10", auth, engine=engine)
 ```
 

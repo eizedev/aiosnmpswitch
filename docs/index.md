@@ -39,7 +39,7 @@ library starts from the standard MIBs every managed switch implements:
 
 | | aiosnmpswitch |
 | --- | --- |
-| **Async** | pysnmp 7 (the SNMP library Home Assistant uses); pysnmp is loaded and its engine created in a worker thread, not in the event loop |
+| **Async** | pysnmp 7 (the SNMP library Home Assistant uses); pysnmp is loaded, its MIB files read and its engine created in a worker thread, not in the event loop |
 | **Read only** | only GET, GETNEXT and GETBULK; there is no code path that sets a value |
 | **Vendor-neutral** | IF-MIB, BRIDGE-MIB, Q-BRIDGE-MIB, LLDP-MIB, IEEE8023-LAG-MIB, POWER-ETHERNET-MIB, IP-MIB; vendor quirks handled where they were measured |
 | **Device locations** | combines the address tables and LLDP of all your switches: a device is on the port that is not an uplink |

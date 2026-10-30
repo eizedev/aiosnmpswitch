@@ -86,6 +86,28 @@ MAX_WALK_ROWS = 100_000
 _HLAPI = "pysnmp.hlapi.v3arch.asyncio"
 
 
+async def create_engine() -> Any:
+    """Create a pysnmp ``SnmpEngine`` in a worker thread, ready to use in the event loop.
+
+    pysnmp imports many modules and reads its MIB files on first use; both happen here, outside
+    the event loop, as Home Assistant's own SNMP integration does. Pass the engine to several
+    transports to share it.
+    """
+    return await asyncio.to_thread(_new_engine)
+
+
+def _new_engine() -> Any:
+    hlapi = importlib.import_module(_HLAPI)
+    view = importlib.import_module("pysnmp.smi.view")
+    engine = hlapi.SnmpEngine()
+    controller = view.MibViewController(
+        engine.message_dispatcher.mib_instrum_controller.get_mib_builder()
+    )
+    engine.cache["mibViewController"] = controller
+    controller.mibBuilder.load_modules()
+    return engine
+
+
 class PysnmpTransport:
     """Reads a switch over UDP with pysnmp (asyncio).
 
@@ -121,14 +143,13 @@ class PysnmpTransport:
     ) -> PysnmpTransport:
         """Prepare requests to ``host``; nothing is sent yet.
 
-        ``engine`` is a shared ``pysnmp`` ``SnmpEngine``; without one, the transport creates its
-        own and closes it in :meth:`close`. An IPv6 address uses UDP over IPv6.
+        ``engine`` is a shared engine from :func:`create_engine`; without one, the transport
+        creates its own and closes it in :meth:`close`. An IPv6 address uses UDP over IPv6.
         """
-        # pysnmp loads many modules on first use: import it in a worker thread, not in the loop.
-        hlapi = await asyncio.to_thread(importlib.import_module, _HLAPI)
         owns_engine = engine is None
         if owns_engine:
-            engine = await asyncio.to_thread(hlapi.SnmpEngine)
+            engine = await create_engine()
+        hlapi = importlib.import_module(_HLAPI)  # loaded by create_engine() or by the caller
         target_class = hlapi.Udp6TransportTarget if ":" in host else hlapi.UdpTransportTarget
         try:
             target = await target_class.create((host, port), timeout=timeout, retries=retries)

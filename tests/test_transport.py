@@ -217,6 +217,7 @@ async def test_recorded_transport_sorts_numerically() -> None:
 async def test_real_engine_is_created_and_closed(fake_hlapi: dict[str, Any]) -> None:
     transport = await PysnmpTransport.create("192.0.2.1", CommunityAuth("c"))
     assert isinstance(transport._engine, hlapi.SnmpEngine)
+    assert "mibViewController" in transport._engine.cache  # MIBs read outside the loop
     await transport.close()
 
 
