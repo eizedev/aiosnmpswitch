@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-30
+
+### Added
+
+- `get_chassis()`: product name, model name and firmware of the chassis from the ENTITY-MIB, for
+  switches whose `sysDescr` does not split into model and firmware. The diagnostics show it, and
+  recordings include these three columns (no serial numbers).
+
 ## [0.1.0] - 2026-10-30
 
 First release.
@@ -23,5 +31,6 @@ First release.
   fixtures.
 - Tested on HPE OfficeConnect 1920S (PD.02.22) and HPE Instant On 1930 (3.4.0.0).
 
-[Unreleased]: https://github.com/eizedev/aiosnmpswitch/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/eizedev/aiosnmpswitch/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/eizedev/aiosnmpswitch/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/eizedev/aiosnmpswitch/releases/tag/v0.1.0

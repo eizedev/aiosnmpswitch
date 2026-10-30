@@ -41,6 +41,8 @@ SYS_DESCR = "1.3.6.1.2.1.1.1"
 KEEP = (
     SYS_DESCR,  # sysDescr: model and firmware; some agents add a host name, see the kept list
     "1.3.6.1.2.1.1.9.1.3",  # sysORDescr
+    "1.3.6.1.2.1.47.1.1.1.1.2",  # entPhysicalDescr
+    "1.3.6.1.2.1.47.1.1.1.1.13",  # entPhysicalModelName
     "1.3.6.1.2.1.2.2.1.2",  # ifDescr
     "1.3.6.1.2.1.31.1.1.1.1",  # ifName
     "1.0.8802.1.1.2.1.3.4",  # lldpLocSysDesc
@@ -51,7 +53,10 @@ KEEP = (
     "1.3.6.1.2.1.17.2.15.1.9",  # dot1dStpPortDesignatedPort (priority and port number)
 )
 # Firmware versions, kept without the address check: four numbers with dots look like IPv4.
-VERSIONS = ("1.3.6.1.2.1.105.1.3.1.1.6",)  # vendor PSE firmware text (HPE 1920S)
+VERSIONS = (
+    "1.3.6.1.2.1.105.1.3.1.1.6",  # vendor PSE firmware text (HPE 1920S)
+    "1.3.6.1.2.1.47.1.1.1.1.10",  # entPhysicalSoftwareRev
+)
 # Columns holding a MAC address, or a text port ID when it is not six octets.
 MACS = (
     "1.3.6.1.2.1.2.2.1.6",  # ifPhysAddress

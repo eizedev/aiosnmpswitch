@@ -14,6 +14,13 @@ SYS_CONTACT = "1.3.6.1.2.1.1.4"
 SYS_NAME = "1.3.6.1.2.1.1.5"
 SYS_LOCATION = "1.3.6.1.2.1.1.6"
 
+# ENTITY-MIB (RFC 6933): entPhysicalTable, indexed by entPhysicalIndex; only these columns are
+# read (not serial numbers or asset IDs)
+ENT_PHYSICAL_DESCR = "1.3.6.1.2.1.47.1.1.1.1.2"
+ENT_PHYSICAL_CLASS = "1.3.6.1.2.1.47.1.1.1.1.5"
+ENT_PHYSICAL_SOFTWARE_REV = "1.3.6.1.2.1.47.1.1.1.1.10"
+ENT_PHYSICAL_MODEL_NAME = "1.3.6.1.2.1.47.1.1.1.1.13"
+
 # IF-MIB (RFC 2863): ifTable, indexed by ifIndex
 IF_DESCR = "1.3.6.1.2.1.2.2.1.2"
 IF_TYPE = "1.3.6.1.2.1.2.2.1.3"

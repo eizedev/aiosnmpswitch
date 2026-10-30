@@ -22,6 +22,7 @@ from ._parse import (
 from .auth import Auth
 from .models import (
     AdminStatus,
+    Chassis,
     FdbEntry,
     FdbStatus,
     Interface,
@@ -47,6 +48,7 @@ Column = dict[tuple[int, ...], Value]
 # InetAddressType values in the index of ipNetToPhysicalTable and lengths of their addresses.
 _INET_ADDRESS_LENGTH = {1: 4, 2: 16, 3: 8, 4: 20}
 _MAC_OCTETS = 6
+_CHASSIS = 3  # entPhysicalClass chassis(3)
 _NET_TO_PHYSICAL_PREFIX = 3  # ifIndex, address type, address length
 _LLDP_REM_INDEX_PARTS = 3
 _LLDP_MAN_ADDR_PREFIX = 5  # time mark, local port, index, address subtype, address length
@@ -114,6 +116,26 @@ class SnmpSwitch:
             name=to_str(value(oids.SYS_NAME)),
             location=to_str(value(oids.SYS_LOCATION)),
         )
+
+    async def get_chassis(self) -> Chassis | None:
+        """ENTITY-MIB: model and firmware of the chassis, or ``None`` without the MIB.
+
+        ``sysDescr`` holds the same for many switches, but in a vendor's own format; the chassis
+        row names them separately.
+        """
+        classes = await self.transport.walk(oids.ENT_PHYSICAL_CLASS)
+        chassis = sorted(int(oid.rsplit(".", 1)[1]) for oid, value in classes if value == _CHASSIS)
+        if not chassis:
+            return None
+        index = chassis[0]
+        names = (
+            oids.ENT_PHYSICAL_DESCR,
+            oids.ENT_PHYSICAL_MODEL_NAME,
+            oids.ENT_PHYSICAL_SOFTWARE_REV,
+        )
+        values = await self.transport.get([f"{oid}.{index}" for oid in names])
+        descr, model_name, software_rev = (to_str(values.get(f"{oid}.{index}")) for oid in names)
+        return Chassis(descr=descr, model_name=model_name, software_rev=software_rev)
 
     async def get_interfaces(self) -> dict[int, Interface]:
         """IF-MIB ``ifTable`` and ``ifXTable``, by ``ifIndex``."""

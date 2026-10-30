@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from aiosnmpswitch import (
+    Chassis,
     FdbStatus,
     ObjectId,
     OperStatus,
@@ -29,6 +30,25 @@ async def test_system() -> None:
         "network admin",
     )
     assert (await recorded("switch-3").get_system()).contact is None  # empty sysContact
+
+
+async def test_chassis() -> None:
+    chassis = await recorded("switch-1").get_chassis()
+    assert chassis == Chassis(
+        descr="HPE OfficeConnect Switch 1920S 8G PPoE+ (65W) JL383A",
+        model_name="hpe1920S_8G_PPoE+",
+        software_rev="PD.02.22",
+    )
+    chassis = await recorded("switch-3").get_chassis()  # the chassis is not the first row
+    assert chassis is not None
+    assert chassis.model_name == "Instant On 1930 8G 2SFP Switch JL680A"
+    assert chassis.software_rev == "InstantOn_1930_3.4.0.0 (6)"
+
+
+async def test_no_chassis() -> None:
+    values = {"1.3.6.1.2.1.47.1.1.1.1.5.1": 10}  # a port, no chassis
+    assert await SnmpSwitch(RecordedTransport(values)).get_chassis() is None
+    assert await SnmpSwitch(RecordedTransport({})).get_chassis() is None
 
 
 async def test_interfaces_1920s() -> None:

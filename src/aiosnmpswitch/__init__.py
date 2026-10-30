@@ -7,6 +7,7 @@ from .client import SnmpSwitch
 from .errors import SnmpAuthError, SnmpError, SnmpTimeoutError
 from .models import (
     AdminStatus,
+    Chassis,
     FdbEntry,
     FdbStatus,
     Interface,
@@ -41,6 +42,7 @@ except ImportError:  # pragma: no cover - only in a source tree that was never b
 __all__ = [
     "AdminStatus",
     "AuthProtocol",
+    "Chassis",
     "CommunityAuth",
     "FdbEntry",
     "FdbStatus",

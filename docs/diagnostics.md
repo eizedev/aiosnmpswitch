@@ -15,6 +15,7 @@ each MIB returns, for example:
 ```text
 model: HPE OfficeConnect Switch 1920S 8G PPoE+ (65W) JL383A, PD.02.22, ...
 sysObjectID: 1.3.6.1.4.1.11.2.3.7.11.186
+chassis (ENTITY-MIB): HPE OfficeConnect Switch 1920S 8G PPoE+ (65W) JL383A, model hpe1920S_8G_PPoE+, software PD.02.22
 interfaces: 13 by ifType {1: 5, 6: 8}
 address table: 39 entries, with VLAN (Q-BRIDGE-MIB)
 LLDP: chassis ID subtype 4, local ports 8, port ID subtypes [3], neighbours 2 on 2 mapped ports
@@ -22,8 +23,8 @@ trunks: 2 with members, LAG-MIB rows 8
 PoE: 1 supplies, 4 ports
 ```
 
-It contains no MAC or IP addresses, port names or descriptions. The `model` line is the
-switch's `sysDescr` as it is: model and firmware on most switches, but some (Linux-based ones in
+It contains no MAC or IP addresses, port names or descriptions. The `model` and `chassis` lines
+are the switch's `sysDescr` and its ENTITY-MIB chassis entry as they are: model and firmware on most switches, but some (Linux-based ones in
 particular) put their host name or a serial number there. Read the output, then paste it into an
 issue.
 
