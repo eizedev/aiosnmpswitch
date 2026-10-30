@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-30
+
+First release.
+
 ### Added
 
 - `SnmpSwitch` with one getter per MIB group: system, interfaces (`ifTable`, `ifXTable`), bridge
@@ -19,4 +23,5 @@ All notable changes to this project are documented here. The format follows
   fixtures.
 - Tested on HPE OfficeConnect 1920S (PD.02.22) and HPE Instant On 1930 (3.4.0.0).
 
-[Unreleased]: https://github.com/eizedev/aiosnmpswitch/commits/main
+[Unreleased]: https://github.com/eizedev/aiosnmpswitch/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/eizedev/aiosnmpswitch/releases/tag/v0.1.0
