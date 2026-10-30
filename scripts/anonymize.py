@@ -43,6 +43,7 @@ KEEP = (
     "1.3.6.1.2.1.1.9.1.3",  # sysORDescr
     "1.3.6.1.2.1.47.1.1.1.1.2",  # entPhysicalDescr
     "1.3.6.1.2.1.47.1.1.1.1.13",  # entPhysicalModelName
+    "1.3.6.1.4.1.11.2.83.3.1.4",  # HPE Instant On 1930: sensor names
     "1.3.6.1.2.1.2.2.1.2",  # ifDescr
     "1.3.6.1.2.1.31.1.1.1.1",  # ifName
     "1.0.8802.1.1.2.1.3.4",  # lldpLocSysDesc

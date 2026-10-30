@@ -1,4 +1,4 @@
-"""The OIDs the client reads, all from standard MIBs.
+"""The OIDs the client reads: standard MIBs, and a few vendor tables named as such at the end.
 
 One constant per object, named after the MIB object, so a reader can look each up in the RFC.
 Tables are walked by column; the index follows the column OID.
@@ -18,6 +18,7 @@ SYS_LOCATION = "1.3.6.1.2.1.1.6"
 # read (not serial numbers or asset IDs)
 ENT_PHYSICAL_DESCR = "1.3.6.1.2.1.47.1.1.1.1.2"
 ENT_PHYSICAL_CLASS = "1.3.6.1.2.1.47.1.1.1.1.5"
+ENT_PHYSICAL_NAME = "1.3.6.1.2.1.47.1.1.1.1.7"
 ENT_PHYSICAL_SOFTWARE_REV = "1.3.6.1.2.1.47.1.1.1.1.10"
 ENT_PHYSICAL_MODEL_NAME = "1.3.6.1.2.1.47.1.1.1.1.13"
 
@@ -99,3 +100,17 @@ PETH_MAIN_PSE_USAGE_THRESHOLD = "1.3.6.1.2.1.105.1.3.1.1.5"
 # IP-MIB (RFC 4293): neighbour (ARP/ND) tables
 IP_NET_TO_PHYSICAL_PHYS_ADDRESS = "1.3.6.1.2.1.4.35.1.4"
 IP_NET_TO_MEDIA_PHYS_ADDRESS = "1.3.6.1.2.1.4.22.1.2"
+
+# ENTITY-SENSOR-MIB (RFC 3433): entPhySensorTable, indexed by entPhysicalIndex
+ENT_PHY_SENSOR_ENTRY = "1.3.6.1.2.1.99.1.1.1"
+ENT_PHY_SENSOR_TYPE = "1.3.6.1.2.1.99.1.1.1.1"
+ENT_PHY_SENSOR_SCALE = "1.3.6.1.2.1.99.1.1.1.2"
+ENT_PHY_SENSOR_PRECISION = "1.3.6.1.2.1.99.1.1.1.3"
+ENT_PHY_SENSOR_VALUE = "1.3.6.1.2.1.99.1.1.1.4"
+ENT_PHY_SENSOR_OPER_STATUS = "1.3.6.1.2.1.99.1.1.1.5"
+
+# Vendor tables, read only on the models named, never walked as a whole. HPE Instant On 1930: the
+# entPhySensorTable columns under a vendor OID (measured, not from HPE's MIB file), names apart.
+HPE_1930_OBJECT_ID = "1.3.6.1.4.1.11.2.3.7.11.194"
+HPE_1930_SENSOR_ENTRY = "1.3.6.1.4.1.11.2.83.2.1.1.1"
+HPE_1930_SENSOR_NAME = "1.3.6.1.4.1.11.2.83.3.1.4"

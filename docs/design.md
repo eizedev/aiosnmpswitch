@@ -17,7 +17,9 @@ see what the switch said and what was derived.
 Getters walk whole tables in one GETBULK sequence each (GETNEXT on SNMPv1), with MIB lookups off,
 so requests do not resolve names. The engine loads pysnmp's MIB modules once, in
 `create_engine()`, outside the event loop. Only the standard subtrees are read; vendor trees can
-be huge.
+be huge. The one exception is a vendor table for something the standard MIB lacks on a model,
+measured on that model and read only there, by `sysObjectID` and by column: the temperature
+sensors of the HPE Instant On 1930 (`get_temperatures()`).
 
 ## Parsers never raise
 

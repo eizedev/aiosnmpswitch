@@ -22,9 +22,10 @@ link, speed and traffic, PoE, the MAC address table, LLDP neighbours, trunks and
 Across several switches it works out **which device is connected to which port**. It only reads
 and never changes a setting.
 
-It uses standard MIBs only, so it is vendor-neutral; HPE OfficeConnect 1920S and HPE Instant On
-1930 are the tested references. It is built as a foundation for Home Assistant, but works in any
-asyncio program.
+It uses standard MIBs, so it is vendor-neutral; a vendor table is read only where the standard
+one is missing and the table was measured on that model (temperatures of the HPE Instant On
+1930). HPE OfficeConnect 1920S and HPE Instant On 1930 are the tested references. It is built as
+a foundation for Home Assistant, but works in any asyncio program.
 
 **Documentation: [aiosnmpswitch.eize.dev](https://aiosnmpswitch.eize.dev/)**
 

@@ -9,6 +9,7 @@ the whole MIB.
 | --- | --- | --- |
 | `get_system()` | SNMPv2-MIB | `SystemInfo`: description (model, firmware), object ID, uptime, name, contact, location |
 | `get_chassis()` | ENTITY-MIB | `Chassis`: product name, model name and firmware of the chassis, read from these three columns only (no serial numbers); `None` without the MIB |
+| `get_temperatures()` | ENTITY-SENSOR-MIB, else a vendor table on the HPE Instant On 1930 | `Temperature` list: name, degrees Celsius, status; empty without sensors |
 | `get_interfaces()` | IF-MIB `ifTable`, `ifXTable` | `Interface` by `ifIndex`: name, alias, type, status, speed, MAC address, 32- and 64-bit counters, errors, discards |
 | `get_bridge_ports()` | BRIDGE-MIB | `ifIndex` by bridge port number |
 | `get_fdb()` | Q-BRIDGE-MIB, else BRIDGE-MIB | `FdbEntry` list: MAC address, VLAN, bridge port, status (learned, self, management) |

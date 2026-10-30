@@ -28,6 +28,8 @@ async def test_getters_never_raise(recording: dict[str, Value]) -> None:
     await switch.get_system()
     await switch.get_stp()
     await switch.get_poe()
+    await switch.get_chassis()
+    await switch.get_temperatures()
     data = SwitchData(
         interfaces=await switch.get_interfaces(),
         bridge_ports=await switch.get_bridge_ports(),

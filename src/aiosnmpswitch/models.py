@@ -72,6 +72,28 @@ class PseOperStatus(IntEnum):
     FAULTY = 3
 
 
+class SensorStatus(IntEnum):
+    """``entPhySensorOperStatus``."""
+
+    OK = 1
+    UNAVAILABLE = 2
+    NONOPERATIONAL = 3
+
+
+@dataclass(frozen=True, slots=True)
+class Temperature:
+    """One temperature sensor of the switch."""
+
+    index: int
+    """``entPhysicalIndex`` of the sensor (or the vendor table's index)."""
+    name: str | None
+    """The sensor's name as the switch gives it, for example ``PHY``."""
+    celsius: float | None
+    """The reading in degrees Celsius; ``None`` without a value, while the sensor reports itself
+    not ok, or when the switch's scale or precision make no sense."""
+    status: SensorStatus | None
+
+
 @dataclass(frozen=True, slots=True)
 class SystemInfo:
     """SNMPv2-MIB system group."""

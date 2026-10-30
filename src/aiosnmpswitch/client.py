@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any, Self
@@ -36,9 +37,11 @@ from .models import (
     PseDetectionStatus,
     PseOperStatus,
     PsePort,
+    SensorStatus,
     StpInfo,
     StpPortState,
     SystemInfo,
+    Temperature,
 )
 from .transport import PysnmpTransport, Transport, Value
 
@@ -49,6 +52,15 @@ Column = dict[tuple[int, ...], Value]
 _INET_ADDRESS_LENGTH = {1: 4, 2: 16, 3: 8, 4: 20}
 _MAC_OCTETS = 6
 _CHASSIS = 3  # entPhysicalClass chassis(3)
+_CELSIUS = 8  # entPhySensorType celsius(8)
+_UNITS = 9  # entPhySensorScale units(9); each step is a factor of 1000 (RFC 3433, yocto to tera)
+# Scales 14-17 (exa, peta, zetta, yotta, not in ascending order in the RFC) are left out on purpose:
+# no temperature needs them.
+_SCALES = range(1, 14)
+_PRECISIONS = range(-8, 10)  # entPhySensorPrecision, RFC 3433
+# A vendor table's reading outside this range is taken as misread (wrong unit or precision).
+_PLAUSIBLE_CELSIUS = (-40, 150)
+_SENSOR_COLUMNS = range(1, 6)  # type, scale, precision, value, oper status
 _NET_TO_PHYSICAL_PREFIX = 3  # ifIndex, address type, address length
 _LLDP_REM_INDEX_PARTS = 3
 _LLDP_MAN_ADDR_PREFIX = 5  # time mark, local port, index, address subtype, address length
@@ -89,6 +101,8 @@ class SnmpSwitch:
         prefix_length = len(table.split("."))
         for oid, value in await self.transport.walk(table):
             parts = oid.split(".")
+            if len(parts) <= prefix_length + 1:  # a column without a row index: not a cell
+                continue
             column = ".".join(parts[: prefix_length + 1])
             columns[column][tuple(int(p) for p in parts[prefix_length + 1 :])] = value
         return columns
@@ -136,6 +150,50 @@ class SnmpSwitch:
         values = await self.transport.get([f"{oid}.{index}" for oid in names])
         descr, model_name, software_rev = (to_str(values.get(f"{oid}.{index}")) for oid in names)
         return Chassis(descr=descr, model_name=model_name, software_rev=software_rev)
+
+    async def get_temperatures(self) -> list[Temperature]:
+        """Temperature sensors: ENTITY-SENSOR-MIB, else a known vendor table; empty without.
+
+        The HPE Instant On 1930 has no ``entPhySensorTable`` but the same columns under a vendor
+        OID. Its precision column says one decimal place while the value is whole degrees (54
+        means 54 °C, measured), so the vendor reading ignores the precision.
+        """
+        table = await self._table(oids.ENT_PHY_SENSOR_ENTRY)
+        if table:
+            indexes = [
+                i[0]
+                for i, v in table.get(oids.ENT_PHY_SENSOR_TYPE, {}).items()
+                if v == _CELSIUS and len(i) == 1
+            ]
+            values = await self.transport.get([f"{oids.ENT_PHYSICAL_NAME}.{i}" for i in indexes])
+            names = {i: to_str(values.get(f"{oids.ENT_PHYSICAL_NAME}.{i}")) for i in indexes}
+            return _temperatures(table, names, indexes, precise=True)
+        object_id = await self.transport.get([f"{oids.SYS_OBJECT_ID}.0"])
+        if to_oid(object_id.get(f"{oids.SYS_OBJECT_ID}.0")) != oids.HPE_1930_OBJECT_ID:
+            return []
+        vendor_table: dict[str, Column] = {}
+        for number in _SENSOR_COLUMNS:  # only the columns used, not the whole entry
+            column = f"{oids.HPE_1930_SENSOR_ENTRY}.{number}"
+            vendor_table[column] = {
+                (int(oid.rsplit(".", 1)[1]),): value
+                for oid, value in await self.transport.walk(column)
+                # one index part below the column; the column OID itself is no row
+                if oid.startswith(column + ".")
+                and oid.rsplit(".", 1)[1].isdigit()
+                and oid.count(".") == column.count(".") + 1
+            }
+        type_column = vendor_table[f"{oids.HPE_1930_SENSOR_ENTRY}.1"]
+        indexes = [i[0] for i, v in type_column.items() if v == _CELSIUS]
+        names = {
+            int(oid.rsplit(".", 1)[1]): to_str(value)
+            for oid, value in await self.transport.walk(oids.HPE_1930_SENSOR_NAME)
+        }
+        # the same columns as entPhySensorTable: rename them to read both alike
+        vendor = {
+            oids.ENT_PHY_SENSOR_ENTRY + key.removeprefix(oids.HPE_1930_SENSOR_ENTRY): rows
+            for key, rows in vendor_table.items()
+        }
+        return _temperatures(vendor, names, indexes, precise=False)
 
     async def get_interfaces(self) -> dict[int, Interface]:
         """IF-MIB ``ifTable`` and ``ifXTable``, by ``ifIndex``."""
@@ -433,3 +491,45 @@ def _remotes(
             )
         )
     return remotes
+
+
+def _temperatures(
+    table: dict[str, Column], names: dict[int, str | None], indexes: list[int], *, precise: bool
+) -> list[Temperature]:
+    """Turn ``entPhySensorTable`` rows into temperatures in degrees Celsius.
+
+    A reading is ``None`` when the sensor reports itself not ok, or when scale or precision are
+    missing or outside RFC 3433. ``precise=False`` (a vendor table whose precision is wrong)
+    ignores the precision and drops readings outside a plausible range instead.
+    """
+
+    def cell(column: str, index: int) -> Value | None:
+        return table.get(column, {}).get((index,))
+
+    result = []
+    for index in sorted(indexes):
+        value = to_int(cell(oids.ENT_PHY_SENSOR_VALUE, index))
+        scale = to_int(cell(oids.ENT_PHY_SENSOR_SCALE, index))
+        precision = to_int(cell(oids.ENT_PHY_SENSOR_PRECISION, index)) if precise else 0
+        status = to_enum(SensorStatus, cell(oids.ENT_PHY_SENSOR_OPER_STATUS, index))
+        celsius = None
+        if (
+            value is not None
+            and scale in _SCALES
+            and precision in _PRECISIONS
+            and status in (None, SensorStatus.OK)
+        ):
+            exponent = 3 * (scale - _UNITS) - precision  # type: ignore[operator]  # checked above
+            try:
+                celsius = round(value * 10.0**exponent, 3)
+            except OverflowError:  # a value beyond any float
+                celsius = None
+            low, high = _PLAUSIBLE_CELSIUS
+            if celsius is not None and (
+                not math.isfinite(celsius) or (not precise and not low <= celsius <= high)
+            ):
+                celsius = None
+        result.append(
+            Temperature(index=index, name=names.get(index), celsius=celsius, status=status)
+        )
+    return result

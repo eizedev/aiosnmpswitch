@@ -21,6 +21,7 @@ address table: 39 entries, with VLAN (Q-BRIDGE-MIB)
 LLDP: chassis ID subtype 4, local ports 8, port ID subtypes [3], neighbours 2 on 2 mapped ports
 trunks: 2 with members, LAG-MIB rows 8
 PoE: 1 supplies, 4 ports
+temperatures: 0 sensors
 ```
 
 It contains no MAC or IP addresses, port names or descriptions. The `model` and `chassis` lines

@@ -21,9 +21,11 @@ from .models import (
     PseDetectionStatus,
     PseOperStatus,
     PsePort,
+    SensorStatus,
     StpInfo,
     StpPortState,
     SystemInfo,
+    Temperature,
 )
 from .transport import (
     ObjectId,
@@ -61,6 +63,7 @@ __all__ = [
     "PsePort",
     "PysnmpTransport",
     "RecordedTransport",
+    "SensorStatus",
     "SnmpAuthError",
     "SnmpError",
     "SnmpSwitch",
@@ -68,6 +71,7 @@ __all__ = [
     "StpInfo",
     "StpPortState",
     "SystemInfo",
+    "Temperature",
     "Transport",
     "UsmAuth",
     "Value",

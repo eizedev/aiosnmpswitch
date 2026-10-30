@@ -10,12 +10,15 @@ from aiosnmpswitch import (
     PseDetectionStatus,
     PseOperStatus,
     RecordedTransport,
+    SensorStatus,
     SnmpSwitch,
     StpPortState,
+    Value,
 )
+from aiosnmpswitch.diagnostics import load_recording
 from aiosnmpswitch.helpers import lag_members
 
-from .conftest import recorded
+from .conftest import RECORDINGS, recorded
 
 
 async def test_system() -> None:
@@ -45,10 +48,94 @@ async def test_chassis() -> None:
     assert chassis.software_rev == "InstantOn_1930_3.4.0.0 (6)"
 
 
+async def test_a_column_without_a_row_index_is_ignored() -> None:
+    values = {"1.3.6.1.2.1.17.7.1.2.2.1.2": 0}  # dot1qTpFdbPort itself, no fdb id and MAC
+    assert await SnmpSwitch(RecordedTransport(values)).get_fdb() == []
+
+
 async def test_no_chassis() -> None:
     values = {"1.3.6.1.2.1.47.1.1.1.1.5.1": 10}  # a port, no chassis
     assert await SnmpSwitch(RecordedTransport(values)).get_chassis() is None
     assert await SnmpSwitch(RecordedTransport({})).get_chassis() is None
+
+
+async def test_temperatures_1930() -> None:
+    temperatures = await recorded("switch-3").get_temperatures()
+    assert [(t.name, t.celsius, t.status) for t in temperatures] == [
+        ("PP", 54.0, SensorStatus.OK),
+        ("PHY", 55.0, SensorStatus.OK),
+    ]
+
+
+async def test_implausible_vendor_temperature() -> None:
+    values = dict(load_recording(RECORDINGS["switch-3"]))
+    values["1.3.6.1.4.1.11.2.83.2.1.1.1.4.68420481"] = 540  # tenths after a firmware change?
+    temperatures = await SnmpSwitch(RecordedTransport(values)).get_temperatures()
+    assert [t.celsius for t in temperatures] == [None, 55.0]
+
+
+async def test_1930_column_without_a_row_is_no_sensor() -> None:
+    values: dict[str, Value] = {
+        "1.3.6.1.2.1.1.2.0": ObjectId("1.3.6.1.4.1.11.2.3.7.11.194"),
+        "1.3.6.1.4.1.11.2.83.2.1.1.1.1": 8,
+        "1.3.6.1.4.1.11.2.83.2.1.1.1.4": 5,
+    }
+    assert await SnmpSwitch(RecordedTransport(values)).get_temperatures() == []
+
+
+async def test_no_temperatures() -> None:
+    assert await recorded("switch-1").get_temperatures() == []  # a 1920S has no sensor table
+
+
+async def test_temperatures_from_entity_sensor_mib() -> None:
+    sensor = "1.3.6.1.2.1.99.1.1.1"
+    values: dict[str, Value] = {
+        f"{sensor}.1.5": 8,  # celsius
+        f"{sensor}.2.5": 9,  # units
+        f"{sensor}.3.5": 1,  # one decimal place
+        f"{sensor}.4.5": 415,
+        f"{sensor}.5.5": 1,
+        f"{sensor}.1.6": 8,
+        f"{sensor}.2.6": 8,  # milli
+        f"{sensor}.3.6": 0,
+        f"{sensor}.4.6": 38500,
+        f"{sensor}.1.9": 8,
+        f"{sensor}.2.9": 9,
+        f"{sensor}.3.9": -(2**31),  # outside RFC 3433: no reading, no overflow
+        f"{sensor}.4.9": 2**64,
+        f"{sensor}.1.10": 8,
+        f"{sensor}.2.10": 9,
+        f"{sensor}.3.10": 0,
+        f"{sensor}.4.10": 30,
+        f"{sensor}.5.10": 2,  # unavailable: no reading
+        f"{sensor}.1.12": 8,
+        f"{sensor}.2.12": 9,
+        f"{sensor}.3.12": 0,
+        f"{sensor}.4.12": 10**400,  # beyond any float
+        f"{sensor}.1.13": 8,
+        f"{sensor}.2.13": 13,  # tera
+        f"{sensor}.3.13": 0,
+        f"{sensor}.4.13": 10**300,  # a float, but infinite once scaled
+        f"{sensor}.1.11": 8,
+        f"{sensor}.2.11": 9,  # no precision: no reading
+        f"{sensor}.4.11": 30,
+        f"{sensor}.1.7": 8,
+        f"{sensor}.2.7": 99,  # a scale RFC 3433 does not define
+        f"{sensor}.4.7": 1,
+        f"{sensor}.1.8": 10,  # rpm: a fan, not a temperature
+        "1.3.6.1.2.1.47.1.1.1.1.7.5": b"CPU",
+    }
+    temperatures = await SnmpSwitch(RecordedTransport(values)).get_temperatures()
+    assert [(t.index, t.name, t.celsius, t.status) for t in temperatures] == [
+        (5, "CPU", 41.5, SensorStatus.OK),
+        (6, None, 38.5, None),
+        (7, None, None, None),
+        (9, None, None, None),
+        (10, None, None, SensorStatus.UNAVAILABLE),
+        (11, None, None, None),
+        (12, None, None, None),
+        (13, None, None, None),
+    ]
 
 
 async def test_interfaces_1920s() -> None:

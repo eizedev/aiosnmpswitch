@@ -41,6 +41,9 @@ RECORDED_SUBTREES = (
     "1.3.6.1.2.1.47.1.1.1.1.5",  # entPhysicalClass
     "1.3.6.1.2.1.47.1.1.1.1.10",  # entPhysicalSoftwareRev
     "1.3.6.1.2.1.47.1.1.1.1.13",  # entPhysicalModelName
+    "1.3.6.1.2.1.99.1.1.1",  # entPhySensorTable
+    "1.3.6.1.4.1.11.2.83.2.1.1.1",  # HPE Instant On 1930: temperature sensors
+    "1.3.6.1.4.1.11.2.83.3.1.4",  # HPE Instant On 1930: sensor names
     "1.3.6.1.2.1.2.2.1",  # ifTable
     "1.3.6.1.2.1.31.1.1.1",  # ifXTable
     "1.3.6.1.2.1.17.1.4.1.2",  # dot1dBasePortIfIndex
@@ -96,6 +99,7 @@ async def summary(switch: SnmpSwitch) -> list[str]:
     """Lines describing what the switch answers; counts and structure only, no values."""
     system = await switch.get_system()
     chassis = await switch.get_chassis()
+    temperatures = await switch.get_temperatures()
     interfaces = await switch.get_interfaces()
     lldp = await switch.get_lldp()
     data = SwitchData(
@@ -134,6 +138,7 @@ async def summary(switch: SnmpSwitch) -> list[str]:
         f"trunks: {len(set(lag_members(data.lag_ports, interfaces).values()))} with members, "
         f"LAG-MIB rows {len(data.lag_ports)}",
         f"PoE: {len(poe.supplies)} supplies, {len(poe.ports)} ports",
+        f"temperatures: {len(temperatures)} sensors",
         f"neighbour cache: {len(list(data.neighbors))} entries",
     ]
 
