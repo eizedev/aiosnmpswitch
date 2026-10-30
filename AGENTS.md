@@ -23,8 +23,11 @@ uv run mypy                   # strict
 
 - **Read-only.** The transport has `get` and `walk` only. Never add SET requests or a method that
   changes a switch.
-- **Standard MIBs only**, as constants in `src/aiosnmpswitch/oids.py` named after the MIB object.
-  Walk only the tables a getter needs: vendor trees can hold hundreds of thousands of entries.
+- **Standard MIBs**, as constants in `src/aiosnmpswitch/oids.py` named after the MIB object.
+  Walk only the tables a getter needs: vendor trees can hold hundreds of thousands of entries. A
+  vendor table only where the standard one is missing, measured on the model, read only for its
+  `sysObjectID` and only its columns (the HPE 1930 temperatures; constants at the end of
+  `oids.py`).
 - **Models mirror the MIBs** (docs/design.md): frozen dataclasses, field names are MIB objects in
   snake_case without the table prefix, MIB units. Interpretation goes into `helpers.py`.
 - **Parsers never raise.** Use the converters in `_parse.py`; `tests/test_robustness.py` fuzzes

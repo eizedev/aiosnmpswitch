@@ -36,9 +36,11 @@ from .models import (
     PseDetectionStatus,
     PseOperStatus,
     PsePort,
+    SensorStatus,
     StpInfo,
     StpPortState,
     SystemInfo,
+    Temperature,
 )
 from .transport import PysnmpTransport, Transport, Value
 
@@ -49,6 +51,9 @@ Column = dict[tuple[int, ...], Value]
 _INET_ADDRESS_LENGTH = {1: 4, 2: 16, 3: 8, 4: 20}
 _MAC_OCTETS = 6
 _CHASSIS = 3  # entPhysicalClass chassis(3)
+_CELSIUS = 8  # entPhySensorType celsius(8)
+_UNITS = 9  # entPhySensorScale units(9); each step is a factor of 1000 (RFC 3433, yocto to tera)
+_SCALES = range(1, 14)
 _NET_TO_PHYSICAL_PREFIX = 3  # ifIndex, address type, address length
 _LLDP_REM_INDEX_PARTS = 3
 _LLDP_MAN_ADDR_PREFIX = 5  # time mark, local port, index, address subtype, address length
@@ -136,6 +141,38 @@ class SnmpSwitch:
         values = await self.transport.get([f"{oid}.{index}" for oid in names])
         descr, model_name, software_rev = (to_str(values.get(f"{oid}.{index}")) for oid in names)
         return Chassis(descr=descr, model_name=model_name, software_rev=software_rev)
+
+    async def get_temperatures(self) -> list[Temperature]:
+        """Temperature sensors: ENTITY-SENSOR-MIB, else a known vendor table; empty without.
+
+        The HPE Instant On 1930 has no ``entPhySensorTable`` but the same columns under a vendor
+        OID. Its precision column says one decimal place while the value is whole degrees (54
+        means 54 °C, measured), so the vendor reading ignores the precision.
+        """
+        table = await self._table(oids.ENT_PHY_SENSOR_ENTRY)
+        if table:
+            indexes = [
+                i[0] for i, v in table.get(oids.ENT_PHY_SENSOR_TYPE, {}).items() if v == _CELSIUS
+            ]
+            values = await self.transport.get([f"{oids.ENT_PHYSICAL_NAME}.{i}" for i in indexes])
+            names = {i: to_str(values.get(f"{oids.ENT_PHYSICAL_NAME}.{i}")) for i in indexes}
+            return _temperatures(table, names, indexes, precise=True)
+        object_id = await self.transport.get([f"{oids.SYS_OBJECT_ID}.0"])
+        if to_oid(object_id.get(f"{oids.SYS_OBJECT_ID}.0")) != oids.HPE_1930_OBJECT_ID:
+            return []
+        table = await self._table(oids.HPE_1930_SENSOR_ENTRY)
+        column = oids.HPE_1930_SENSOR_ENTRY + ".1"
+        indexes = [i[0] for i, v in table.get(column, {}).items() if v == _CELSIUS]
+        names = {
+            int(oid.rsplit(".", 1)[1]): to_str(value)
+            for oid, value in await self.transport.walk(oids.HPE_1930_SENSOR_NAME)
+        }
+        # the same columns as entPhySensorTable: rename them to read both alike
+        vendor = {
+            oids.ENT_PHY_SENSOR_ENTRY + key.removeprefix(oids.HPE_1930_SENSOR_ENTRY): rows
+            for key, rows in table.items()
+        }
+        return _temperatures(vendor, names, indexes, precise=False)
 
     async def get_interfaces(self) -> dict[int, Interface]:
         """IF-MIB ``ifTable`` and ``ifXTable``, by ``ifIndex``."""
@@ -433,3 +470,31 @@ def _remotes(
             )
         )
     return remotes
+
+
+def _temperatures(
+    table: dict[str, Column], names: dict[int, str | None], indexes: list[int], *, precise: bool
+) -> list[Temperature]:
+    """Turn ``entPhySensorTable`` rows into temperatures in degrees Celsius."""
+
+    def cell(column: str, index: int) -> Value | None:
+        return table.get(column, {}).get((index,))
+
+    result = []
+    for index in sorted(indexes):
+        value = to_int(cell(oids.ENT_PHY_SENSOR_VALUE, index))
+        scale = to_int(cell(oids.ENT_PHY_SENSOR_SCALE, index))
+        precision = to_int(cell(oids.ENT_PHY_SENSOR_PRECISION, index)) if precise else 0
+        celsius = None
+        if value is not None and (scale is None or scale in _SCALES):
+            exponent = 3 * ((scale or _UNITS) - _UNITS) - (precision or 0)
+            celsius = round(value * 10.0**exponent, 3)
+        result.append(
+            Temperature(
+                index=index,
+                name=names.get(index),
+                celsius=celsius,
+                status=to_enum(SensorStatus, cell(oids.ENT_PHY_SENSOR_OPER_STATUS, index)),
+            )
+        )
+    return result

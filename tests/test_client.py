@@ -10,8 +10,10 @@ from aiosnmpswitch import (
     PseDetectionStatus,
     PseOperStatus,
     RecordedTransport,
+    SensorStatus,
     SnmpSwitch,
     StpPortState,
+    Value,
 )
 from aiosnmpswitch.helpers import lag_members
 
@@ -49,6 +51,43 @@ async def test_no_chassis() -> None:
     values = {"1.3.6.1.2.1.47.1.1.1.1.5.1": 10}  # a port, no chassis
     assert await SnmpSwitch(RecordedTransport(values)).get_chassis() is None
     assert await SnmpSwitch(RecordedTransport({})).get_chassis() is None
+
+
+async def test_temperatures_1930() -> None:
+    temperatures = await recorded("switch-3").get_temperatures()
+    assert [(t.name, t.celsius, t.status) for t in temperatures] == [
+        ("PP", 54.0, SensorStatus.OK),
+        ("PHY", 55.0, SensorStatus.OK),
+    ]
+
+
+async def test_no_temperatures() -> None:
+    assert await recorded("switch-1").get_temperatures() == []  # a 1920S has no sensor table
+
+
+async def test_temperatures_from_entity_sensor_mib() -> None:
+    sensor = "1.3.6.1.2.1.99.1.1.1"
+    values: dict[str, Value] = {
+        f"{sensor}.1.5": 8,  # celsius
+        f"{sensor}.2.5": 9,  # units
+        f"{sensor}.3.5": 1,  # one decimal place
+        f"{sensor}.4.5": 415,
+        f"{sensor}.5.5": 1,
+        f"{sensor}.1.6": 8,
+        f"{sensor}.2.6": 8,  # milli
+        f"{sensor}.4.6": 38500,
+        f"{sensor}.1.7": 8,
+        f"{sensor}.2.7": 99,  # a scale RFC 3433 does not define
+        f"{sensor}.4.7": 1,
+        f"{sensor}.1.8": 10,  # rpm: a fan, not a temperature
+        "1.3.6.1.2.1.47.1.1.1.1.7.5": b"CPU",
+    }
+    temperatures = await SnmpSwitch(RecordedTransport(values)).get_temperatures()
+    assert [(t.index, t.name, t.celsius, t.status) for t in temperatures] == [
+        (5, "CPU", 41.5, SensorStatus.OK),
+        (6, None, 38.5, None),
+        (7, None, None, None),
+    ]
 
 
 async def test_interfaces_1920s() -> None:
