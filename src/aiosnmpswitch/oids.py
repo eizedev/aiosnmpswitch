@@ -1,0 +1,94 @@
+"""The OIDs the client reads, all from standard MIBs.
+
+One constant per object, named after the MIB object, so a reader can look each up in the RFC.
+Tables are walked by column; the index follows the column OID.
+"""
+
+from __future__ import annotations
+
+# SNMPv2-MIB (RFC 3418), system group: scalars, read with .0
+SYS_DESCR = "1.3.6.1.2.1.1.1"
+SYS_OBJECT_ID = "1.3.6.1.2.1.1.2"
+SYS_UP_TIME = "1.3.6.1.2.1.1.3"
+SYS_CONTACT = "1.3.6.1.2.1.1.4"
+SYS_NAME = "1.3.6.1.2.1.1.5"
+SYS_LOCATION = "1.3.6.1.2.1.1.6"
+
+# IF-MIB (RFC 2863): ifTable, indexed by ifIndex
+IF_DESCR = "1.3.6.1.2.1.2.2.1.2"
+IF_TYPE = "1.3.6.1.2.1.2.2.1.3"
+IF_MTU = "1.3.6.1.2.1.2.2.1.4"
+IF_SPEED = "1.3.6.1.2.1.2.2.1.5"
+IF_PHYS_ADDRESS = "1.3.6.1.2.1.2.2.1.6"
+IF_ADMIN_STATUS = "1.3.6.1.2.1.2.2.1.7"
+IF_OPER_STATUS = "1.3.6.1.2.1.2.2.1.8"
+IF_LAST_CHANGE = "1.3.6.1.2.1.2.2.1.9"
+IF_IN_OCTETS = "1.3.6.1.2.1.2.2.1.10"
+IF_IN_DISCARDS = "1.3.6.1.2.1.2.2.1.13"
+IF_IN_ERRORS = "1.3.6.1.2.1.2.2.1.14"
+IF_OUT_OCTETS = "1.3.6.1.2.1.2.2.1.16"
+IF_OUT_DISCARDS = "1.3.6.1.2.1.2.2.1.19"
+IF_OUT_ERRORS = "1.3.6.1.2.1.2.2.1.20"
+
+# IF-MIB: ifXTable, indexed by ifIndex
+IF_NAME = "1.3.6.1.2.1.31.1.1.1.1"
+IF_HC_IN_OCTETS = "1.3.6.1.2.1.31.1.1.1.6"
+IF_HC_IN_UCAST_PKTS = "1.3.6.1.2.1.31.1.1.1.7"
+IF_HC_IN_MULTICAST_PKTS = "1.3.6.1.2.1.31.1.1.1.8"
+IF_HC_IN_BROADCAST_PKTS = "1.3.6.1.2.1.31.1.1.1.9"
+IF_HC_OUT_OCTETS = "1.3.6.1.2.1.31.1.1.1.10"
+IF_HC_OUT_UCAST_PKTS = "1.3.6.1.2.1.31.1.1.1.11"
+IF_HC_OUT_MULTICAST_PKTS = "1.3.6.1.2.1.31.1.1.1.12"
+IF_HC_OUT_BROADCAST_PKTS = "1.3.6.1.2.1.31.1.1.1.13"
+IF_HIGH_SPEED = "1.3.6.1.2.1.31.1.1.1.15"
+IF_ALIAS = "1.3.6.1.2.1.31.1.1.1.18"
+
+# BRIDGE-MIB (RFC 4188)
+DOT1D_BASE_PORT_IF_INDEX = "1.3.6.1.2.1.17.1.4.1.2"
+DOT1D_STP_TIME_SINCE_TOPOLOGY_CHANGE = "1.3.6.1.2.1.17.2.3"
+DOT1D_STP_TOP_CHANGES = "1.3.6.1.2.1.17.2.4"
+DOT1D_STP_DESIGNATED_ROOT = "1.3.6.1.2.1.17.2.5"
+DOT1D_STP_ROOT_COST = "1.3.6.1.2.1.17.2.6"
+DOT1D_STP_ROOT_PORT = "1.3.6.1.2.1.17.2.7"
+DOT1D_STP_PORT_STATE = "1.3.6.1.2.1.17.2.15.1.3"
+DOT1D_TP_FDB_PORT = "1.3.6.1.2.1.17.4.3.1.2"
+DOT1D_TP_FDB_STATUS = "1.3.6.1.2.1.17.4.3.1.3"
+
+# Q-BRIDGE-MIB (RFC 4363): dot1qTpFdbTable, indexed by FDB id (VLAN) and MAC
+DOT1Q_TP_FDB_PORT = "1.3.6.1.2.1.17.7.1.2.2.1.2"
+DOT1Q_TP_FDB_STATUS = "1.3.6.1.2.1.17.7.1.2.2.1.3"
+
+# LLDP-MIB (IEEE 802.1AB-2005): local system and ports
+LLDP_LOC_CHASSIS_ID_SUBTYPE = "1.0.8802.1.1.2.1.3.1"
+LLDP_LOC_CHASSIS_ID = "1.0.8802.1.1.2.1.3.2"
+LLDP_LOC_SYS_NAME = "1.0.8802.1.1.2.1.3.3"
+LLDP_LOC_PORT_ID_SUBTYPE = "1.0.8802.1.1.2.1.3.7.1.2"
+LLDP_LOC_PORT_ID = "1.0.8802.1.1.2.1.3.7.1.3"
+
+# LLDP-MIB: lldpRemTable, indexed by time mark, local port number and remote index
+LLDP_REM_CHASSIS_ID_SUBTYPE = "1.0.8802.1.1.2.1.4.1.1.4"
+LLDP_REM_CHASSIS_ID = "1.0.8802.1.1.2.1.4.1.1.5"
+LLDP_REM_PORT_ID_SUBTYPE = "1.0.8802.1.1.2.1.4.1.1.6"
+LLDP_REM_PORT_ID = "1.0.8802.1.1.2.1.4.1.1.7"
+LLDP_REM_PORT_DESC = "1.0.8802.1.1.2.1.4.1.1.8"
+LLDP_REM_SYS_NAME = "1.0.8802.1.1.2.1.4.1.1.9"
+LLDP_REM_SYS_DESC = "1.0.8802.1.1.2.1.4.1.1.10"
+LLDP_REM_SYS_CAP_ENABLED = "1.0.8802.1.1.2.1.4.1.1.12"
+# lldpRemManAddrTable: the index carries the address; the column is lldpRemManAddrIfSubtype
+LLDP_REM_MAN_ADDR_IF_SUBTYPE = "1.0.8802.1.1.2.1.4.2.1.3"
+
+# IEEE8023-LAG-MIB: dot3adAggPortAttachedAggID, indexed by the member port's ifIndex
+DOT3AD_AGG_PORT_ATTACHED_AGG_ID = "1.2.840.10006.300.43.1.2.1.1.13"
+
+# POWER-ETHERNET-MIB (RFC 3621): ports indexed by group and port, supplies by group
+PETH_PSE_PORT_ADMIN_ENABLE = "1.3.6.1.2.1.105.1.1.1.3"
+PETH_PSE_PORT_DETECTION_STATUS = "1.3.6.1.2.1.105.1.1.1.6"
+PETH_PSE_PORT_POWER_CLASSIFICATIONS = "1.3.6.1.2.1.105.1.1.1.10"
+PETH_MAIN_PSE_POWER = "1.3.6.1.2.1.105.1.3.1.1.2"
+PETH_MAIN_PSE_OPER_STATUS = "1.3.6.1.2.1.105.1.3.1.1.3"
+PETH_MAIN_PSE_CONSUMPTION_POWER = "1.3.6.1.2.1.105.1.3.1.1.4"
+PETH_MAIN_PSE_USAGE_THRESHOLD = "1.3.6.1.2.1.105.1.3.1.1.5"
+
+# IP-MIB (RFC 4293): neighbour (ARP/ND) tables
+IP_NET_TO_PHYSICAL_PHYS_ADDRESS = "1.3.6.1.2.1.4.35.1.4"
+IP_NET_TO_MEDIA_PHYS_ADDRESS = "1.3.6.1.2.1.4.22.1.2"

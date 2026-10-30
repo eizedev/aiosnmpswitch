@@ -1,0 +1,19 @@
+name: Feature request
+description: Something the library should read or do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What should the library read, and what would you use it for?
+    validations:
+      required: true
+  - type: input
+    id: mib
+    attributes:
+      label: Which MIB has it?
+      description: The standard MIB and object, if you know it (e.g. ENTITY-SENSOR-MIB, entPhySensorValue).
+  - type: input
+    id: switch
+    attributes:
+      label: Switch model and firmware you would test with

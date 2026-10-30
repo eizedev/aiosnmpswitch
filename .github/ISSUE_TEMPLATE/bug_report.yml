@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste raw SNMP output: it contains MAC addresses, IP addresses and
+        device names. Replace them (e.g. `02:00:00:00:00:01`, `192.0.2.1`), and never paste a
+        community or SNMPv3 key.
+  - type: input
+    id: version
+    attributes:
+      label: aiosnmpswitch version
+      description: "`pip show aiosnmpswitch`"
+    validations:
+      required: true
+  - type: input
+    id: switch
+    attributes:
+      label: Switch model and firmware
+      placeholder: "HPE OfficeConnect 1920S (JL383A), PD.02.22"
+    validations:
+      required: true
+  - type: dropdown
+    id: snmp
+    attributes:
+      label: SNMP version
+      options: ["v3", "v2c", "v1"]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code and error (redacted)
+      description: A traceback may name the switch's address; replace it before you paste.
+      render: python
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Output of `aiosnmpswitch-diagnostics <switch>`
+      description: It contains no addresses or names (https://aiosnmpswitch.eize.dev/diagnostics/); read it, then paste it.
+      render: text

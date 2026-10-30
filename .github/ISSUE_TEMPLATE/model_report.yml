@@ -1,0 +1,56 @@
+name: Model or firmware report
+description: Tell us whether the library works with your switch and firmware.
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reports from switches that are not tested yet help most. See the
+        [compatibility page](https://aiosnmpswitch.eize.dev/compatibility/).
+        Please replace MAC addresses, IP addresses and device names before posting
+        (e.g. `02:00:00:00:00:01`, `192.0.2.1`).
+  - type: input
+    id: model
+    attributes:
+      label: Switch model
+      placeholder: "Netgear GS308T"
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: aiosnmpswitch version
+      description: "`pip show aiosnmpswitch`"
+    validations:
+      required: true
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works
+      description: Tick what returned sensible data.
+      options:
+        - label: get_system()
+        - label: get_interfaces()
+        - label: get_fdb()
+        - label: get_lldp()
+        - label: get_lag_ports()
+        - label: get_poe()
+        - label: get_stp()
+        - label: get_neighbors()
+        - label: helpers.locate_macs() places devices on the right ports
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Output of `aiosnmpswitch-diagnostics <switch>`
+      description: It contains no addresses or names (https://aiosnmpswitch.eize.dev/diagnostics/); read it, then paste it.
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Errors or odd values (redacted)
