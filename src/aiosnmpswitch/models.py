@@ -88,6 +88,18 @@ class SystemInfo:
 
 
 @dataclass(frozen=True, slots=True)
+class Chassis:
+    """ENTITY-MIB: the switch's chassis, the first ``entPhysicalTable`` row of class chassis."""
+
+    descr: str | None
+    """``entPhysicalDescr``: the vendor's product name, often with the part number."""
+    model_name: str | None
+    """``entPhysicalModelName``: the vendor's model name or part number."""
+    software_rev: str | None
+    """``entPhysicalSoftwareRev``: the firmware version."""
+
+
+@dataclass(frozen=True, slots=True)
 class Interface:
     """One row of ``ifTable`` and ``ifXTable``."""
 

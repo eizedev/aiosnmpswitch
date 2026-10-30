@@ -37,6 +37,10 @@ RECORDING_FORMAT = 1
 # Everything the client reads, walked whole so a recording answers every getter.
 RECORDED_SUBTREES = (
     "1.3.6.1.2.1.1",  # system
+    "1.3.6.1.2.1.47.1.1.1.1.2",  # entPhysicalDescr
+    "1.3.6.1.2.1.47.1.1.1.1.5",  # entPhysicalClass
+    "1.3.6.1.2.1.47.1.1.1.1.10",  # entPhysicalSoftwareRev
+    "1.3.6.1.2.1.47.1.1.1.1.13",  # entPhysicalModelName
     "1.3.6.1.2.1.2.2.1",  # ifTable
     "1.3.6.1.2.1.31.1.1.1",  # ifXTable
     "1.3.6.1.2.1.17.1.4.1.2",  # dot1dBasePortIfIndex
@@ -91,6 +95,7 @@ async def record(transport: Transport) -> dict[str, Value]:
 async def summary(switch: SnmpSwitch) -> list[str]:
     """Lines describing what the switch answers; counts and structure only, no values."""
     system = await switch.get_system()
+    chassis = await switch.get_chassis()
     interfaces = await switch.get_interfaces()
     lldp = await switch.get_lldp()
     data = SwitchData(
@@ -112,6 +117,9 @@ async def summary(switch: SnmpSwitch) -> list[str]:
     return [
         f"model: {system.descr}",
         f"sysObjectID: {system.object_id}",
+        f"chassis (ENTITY-MIB): {chassis.descr if chassis else 'none'}, "
+        f"model {chassis.model_name if chassis else None}, "
+        f"software {chassis.software_rev if chassis else None}",
         f"interfaces: {len(interfaces)} by ifType {dict(sorted(types.items(), key=str))}",
         f"interfaces with ifName: {sum(1 for i in interfaces.values() if i.name)}, "
         f"with ifHighSpeed: {sum(1 for i in interfaces.values() if i.high_speed is not None)}, "
