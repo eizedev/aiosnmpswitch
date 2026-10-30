@@ -74,6 +74,15 @@ async def test_implausible_vendor_temperature() -> None:
     assert [t.celsius for t in temperatures] == [None, 55.0]
 
 
+async def test_1930_column_without_a_row_is_no_sensor() -> None:
+    values: dict[str, Value] = {
+        "1.3.6.1.2.1.1.2.0": ObjectId("1.3.6.1.4.1.11.2.3.7.11.194"),
+        "1.3.6.1.4.1.11.2.83.2.1.1.1.1": 8,
+        "1.3.6.1.4.1.11.2.83.2.1.1.1.4": 5,
+    }
+    assert await SnmpSwitch(RecordedTransport(values)).get_temperatures() == []
+
+
 async def test_no_temperatures() -> None:
     assert await recorded("switch-1").get_temperatures() == []  # a 1920S has no sensor table
 
@@ -103,6 +112,10 @@ async def test_temperatures_from_entity_sensor_mib() -> None:
         f"{sensor}.2.12": 9,
         f"{sensor}.3.12": 0,
         f"{sensor}.4.12": 10**400,  # beyond any float
+        f"{sensor}.1.13": 8,
+        f"{sensor}.2.13": 13,  # tera
+        f"{sensor}.3.13": 0,
+        f"{sensor}.4.13": 10**300,  # a float, but infinite once scaled
         f"{sensor}.1.11": 8,
         f"{sensor}.2.11": 9,  # no precision: no reading
         f"{sensor}.4.11": 30,
@@ -121,6 +134,7 @@ async def test_temperatures_from_entity_sensor_mib() -> None:
         (10, None, None, SensorStatus.UNAVAILABLE),
         (11, None, None, None),
         (12, None, None, None),
+        (13, None, None, None),
     ]
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any, Self
@@ -176,7 +177,10 @@ class SnmpSwitch:
             vendor_table[column] = {
                 (int(oid.rsplit(".", 1)[1]),): value
                 for oid, value in await self.transport.walk(column)
-                if oid.rsplit(".", 1)[1].isdigit()
+                # one index part below the column; the column OID itself is no row
+                if oid.startswith(column + ".")
+                and oid.rsplit(".", 1)[1].isdigit()
+                and oid.count(".") == column.count(".") + 1
             }
         type_column = vendor_table[f"{oids.HPE_1930_SENSOR_ENTRY}.1"]
         indexes = [i[0] for i, v in type_column.items() if v == _CELSIUS]
@@ -521,7 +525,9 @@ def _temperatures(
             except OverflowError:  # a value beyond any float
                 celsius = None
             low, high = _PLAUSIBLE_CELSIUS
-            if celsius is not None and not precise and not low <= celsius <= high:
+            if celsius is not None and (
+                not math.isfinite(celsius) or (not precise and not low <= celsius <= high)
+            ):
                 celsius = None
         result.append(
             Temperature(index=index, name=names.get(index), celsius=celsius, status=status)
