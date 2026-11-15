@@ -682,14 +682,14 @@ wheels = [
 
 [[package]]
 name = "pysnmp"
-version = "7.1.30"
+version = "7.1.31"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyasn1" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/55/2a/ab68df5b1a2f673da731da7caf39c29d924735359e7d50eacb80d2d38e53/pysnmp-7.1.30.tar.gz", hash = "sha256:db72f439b066725d2586dff068478dc8e9b303a4dba3294462b0e76b3cb63bc2", size = 268625, upload-time = "2026-09-28T07:51:09.188Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8c/da/1fc15bc8255dbe8cb3effe46896e92a52db76c1ef53ab37c4e8ae9f09320/pysnmp-7.1.31.tar.gz", hash = "sha256:97ae3e8dbf05937fa7fc69b85c03c0b2cc020a15d16b66e54d5743d895109597", size = 270257, upload-time = "2026-11-03T08:24:43.257Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/6e/5ba915d4aa285d7ca7c8c3db0dddb5d848e9f85e383de064122fb0702c7b/pysnmp-7.1.30-py3-none-any.whl", hash = "sha256:1f648b7e38fc400e63b493a45d06581d837d07cddd901e6dc9c45be03e9ed685", size = 355559, upload-time = "2026-09-28T07:51:07.606Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/24/19cb5134da93d583bd4e66b830e2519dafa71e3dbb1518245cde8ce8c5b5/pysnmp-7.1.31-py3-none-any.whl", hash = "sha256:a49848f04bdf173b0a97dc736d2ac7b066231f4d9236c125a4f303c561a02835", size = 357330, upload-time = "2026-11-03T08:24:41.984Z" },
 ]
 
 [[package]]
